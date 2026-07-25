@@ -1,0 +1,40 @@
+# Логи и кеш
+*.log
+*.code-workspace
+.phpunit.result.cache
+/.phpunit.cache
+/storage/*.key
+/storage/pail
+
+# Файлы окружения (содержат пароли, ключи API и т.д.)
+.env
+.env.backup
+.env.production
+.env.*.php
+.env.php
+
+# Зависимости (устанавливаются через Composer и NPM)
+/vendor
+/node_modules
+
+# Системные файлы ОС и IDE
+.DS_Store
+Thumbs.db
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+/auth.json
+
+# Папки со сгенерированными файлами
+/public/build
+/public/hot
+/public/storage
+
+# Файлы для Laravel Boost
+AGENTS.md
+CLAUDE.md
+copilot-instructions.md
+.mcp.json
+boost.json
