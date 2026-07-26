@@ -3,6 +3,7 @@
 namespace App\Livewire\Components;
 
 use App\Domains\Game\Models\Team;
+use App\Domains\Game\Models\Player;
 use App\Models\User;
 use App\Domains\Game\Services\PlayerGeneratorService;
 use Illuminate\Support\Facades\Auth;
@@ -38,17 +39,18 @@ class TeamManagement extends Component
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        $users = User::all();  // ← Все пользователи
+        $users = User::all();
+        $allPlayers = Player::all();  // ← Добавлено
 
         return view('livewire.team-management', [
             'teams' => $teams,
-            'users' => $users
+            'users' => $users,
+            'allPlayers' => $allPlayers,  // ← Добавлено
         ]);
     }
 
     public function openModal()
     {
-        // Автоматически подставить текущего пользователя как владельца
         $this->ownerId = Auth::id();
         $this->reset(['name', 'tag', 'playerCount', 'isModalOpen']);
         $this->isModalOpen = true;
@@ -66,17 +68,15 @@ class TeamManagement extends Component
         try {
             DB::beginTransaction();
 
-            // Создаем команду
             $team = Team::create([
                 'name' => $this->name,
                 'tag' => $this->tag,
-                'owner_id' => $this->ownerId ?? Auth::id(),  // ← Если не указан - текущий
+                'owner_id' => $this->ownerId ?? Auth::id(),
                 'wins' => 0,
                 'losses' => 0,
                 'total_matches' => 0,
             ]);
 
-            // Генерируем игроков
             $playerGenerator->generateTeamPlayers($this->name, $team->id, (int)$this->playerCount);
 
             DB::commit();
@@ -85,8 +85,6 @@ class TeamManagement extends Component
             $this->reset(['name', 'tag', 'playerCount']);
 
             $this->dispatch('team-created', $team->id);
-
-            // Flash сообщение
             session()->flash('message', "Команда '{$team->name}' успешно создана!");
         } catch (\Exception $e) {
             DB::rollBack();
@@ -96,7 +94,6 @@ class TeamManagement extends Component
 
     public function deleteTeam(Team $team)
     {
-        // Проверка, что пользователь владелец
         if ($team->owner_id !== Auth::id()) {
             $this->addError('general', 'Вы не можете удалить эту команду');
             return;

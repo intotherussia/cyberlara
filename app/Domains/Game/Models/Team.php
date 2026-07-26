@@ -2,6 +2,7 @@
 
 namespace App\Domains\Game\Models;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,6 +24,12 @@ class Team extends Model
         get => $this->total_matches > 0
             ? round(($this->wins / $this->total_matches) * 100, 2)
             : 0;
+    }
+
+    // Метод для вызова из шаблонов (если нужно)
+    public function getWinRate(): float
+    {
+        return $this->winRate;
     }
 
     public function owner(): BelongsTo

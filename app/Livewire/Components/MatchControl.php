@@ -73,18 +73,22 @@ class MatchControl extends Component
     {
         $this->validate();
 
+        Log::channel('game')->info('Создание матча', [
+            'team1' => $this->team1,
+            'team2' => $this->team2,
+            'totalEvents' => $this->totalEvents,
+        ]);
+
         try {
             DB::beginTransaction();
 
             $match = $matchService->createFriendlyMatch(
                 $this->team1,
                 $this->team2,
-                $this->totalEvents
+                $this->totalEvents ?? 40
             );
 
             $matchService->startMatch($match);
-
-            Event::dispatch(new MatchEventGenerated($match));
 
             DB::commit();
 
@@ -92,8 +96,18 @@ class MatchControl extends Component
             $this->reset(['team1', 'team2', 'map1', 'map2', 'totalEvents']);
 
             $this->dispatch('match-started', $match->id);
+
+            session()->flash('message', "Матч #{$match->id} создан и запущен!");
+
+            // Обновляем список матчей
+            $this->render();
+
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::channel('game')->error('Ошибка создания матча', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             $this->addError('general', 'Ошибка при создании матча: ' . $e->getMessage());
         }
     }

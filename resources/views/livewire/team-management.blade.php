@@ -74,7 +74,7 @@
                                     <span class="text-gray-400 mx-2">побед</span>
                                 </div>
                                 <div class="text-sm text-gray-500">
-                                    {{ $team->winRate() }}% побед
+                                    {{ $team->winRate }}% побед
                                 </div>
                             </td>
                             <td class="px-6 py-4">
