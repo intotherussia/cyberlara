@@ -1,14 +1,9 @@
-<?php
-
-// Import necessary modules
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
-// Set up Pusher as the WebSocket client
 window.Pusher = Pusher;
 
-// Create a new Echo instance with Reverb configuration
-const echo = new Echo({
+window.Echo = new Echo({
     broadcaster: 'reverb',
     key: import.meta.env.VITE_REVERB_APP_KEY,
     wsHost: import.meta.env.VITE_REVERB_HOST,
@@ -18,5 +13,18 @@ const echo = new Echo({
     enabledTransports: ['ws', 'wss'],
 });
 
-// Export the Echo instance for use in other files
-export default echo;
+if (window.Echo && window.Echo.connector) {
+    const connection = window.Echo.connector.pusher.connection;
+
+    connection.bind('connected', () => {
+        console.log('✅ WebSocket connected!');
+    });
+
+    connection.bind('disconnected', () => {
+        console.log('❌ WebSocket disconnected');
+    });
+
+    connection.bind('error', (error) => {
+        console.error('⚠️ WebSocket error:', error);
+    });
+}

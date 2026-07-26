@@ -21,9 +21,23 @@ class SimulationService
     /**
      * Генерация одного игрового события
      */
-    public function generateEvent(MatchModel $match): MatchEvent
+    public function generateEvent(MatchModel $match): ?MatchEvent
     {
         return DB::transaction(function () use ($match) {
+            // Проверяем, закончились ли события на текущей карте
+            if ($match->current_event > 0 && $match->isCurrentMapFinished()) {
+                if ($match->current_map_index === 0) {
+                    $match->switchToNextMap();
+                    Log::channel('game')->info("🔄 Переход на вторую карту: {$match->currentMap()?->display_name}");
+
+                    // После смены карты продолжаем генерацию события на новой карте
+                } else {
+                    // Обе карты сыграны, матч завершен
+                    Log::channel('game')->info("⏹️ Обе карты сыграны, матч завершен");
+                    return null;
+                }
+            }
+
             $currentMap = $match->currentMap();
             if (!$currentMap) {
                 throw new \RuntimeException('Current map not found');
@@ -73,6 +87,8 @@ class SimulationService
                 'kills' => count($kills),
                 'location' => $location->name,
                 'score' => "{$match->score_team1}:{$match->score_team2}",
+                'current_map' => $currentMap->display_name,
+                'map_index' => $match->current_map_index,
             ]);
 
             return $event;
@@ -110,7 +126,6 @@ class SimulationService
         $kills = [];
         $weapon = WeaponType::from($location->priority_weapon);
 
-        // Команда 1 атакует команду 2
         foreach ($team1Players as $attacker) {
             foreach ($team2Players as $defender) {
                 if ($this->calculateFightOutcome($attacker, $defender, $weapon, $map)) {
@@ -119,7 +134,6 @@ class SimulationService
             }
         }
 
-        // Команда 2 атакует команду 1
         foreach ($team2Players as $attacker) {
             foreach ($team1Players as $defender) {
                 if ($this->calculateFightOutcome($attacker, $defender, $weapon, $map)) {
@@ -195,6 +209,12 @@ class SimulationService
      */
     public function finalizeMatch(MatchModel $match): void
     {
+        // Проверяем, не завершен ли уже матч
+        if ($match->isFinished()) {
+            Log::channel('game')->info("Матч #{$match->id} уже завершен, пропускаем финализацию");
+            return;
+        }
+
         DB::transaction(function () use ($match) {
             if ($match->score_team1 > $match->score_team2) {
                 $match->winner_team_id = $match->team1_id;
@@ -261,19 +281,24 @@ class SimulationService
             $player->increment('deaths', $deaths);
             $player->increment('matches_played');
 
-            $player->matchStats()->create([
-                'match_id' => $match->id,
-                'team_id' => $player->team_id,
-                'kills' => $kills,
-                'deaths' => $deaths,
-                'aim_before' => $player->getOriginal('aim'),
-                'skill_before' => $player->getOriginal('skill'),
-                'movement_before' => $player->getOriginal('movement'),
-                'aim_after' => $player->aim,
-                'skill_after' => $player->skill,
-                'movement_after' => $player->movement,
-                'weapons_used' => $player->weaponStats()->pluck('weapon_type')->toArray(),
-            ]);
+            // Используем firstOrCreate вместо create
+            $player->matchStats()->firstOrCreate(
+                [
+                    'match_id' => $match->id,
+                    'team_id' => $player->team_id,
+                ],
+                [
+                    'kills' => $kills,
+                    'deaths' => $deaths,
+                    'aim_before' => $player->getOriginal('aim'),
+                    'skill_before' => $player->getOriginal('skill'),
+                    'movement_before' => $player->getOriginal('movement'),
+                    'aim_after' => $player->aim,
+                    'skill_after' => $player->skill,
+                    'movement_after' => $player->movement,
+                    'weapons_used' => $player->weaponStats()->pluck('weapon_type')->toArray(),
+                ]
+            );
         }
     }
 }

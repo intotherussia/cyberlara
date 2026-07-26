@@ -1,0 +1,162 @@
+/**
+ * Утилиты для работы с WebSocket
+ */
+
+// Глобальный объект для хранения активных подписок
+const subscriptions = {};
+
+/**
+ * Подписка на канал матча
+ * @param {number} matchId - ID матча
+ * @param {Object} callbacks - Колбэки для событий
+ * @param {Function} callbacks.onEvent - При новом событии
+ * @param {Function} callbacks.onFinished - При завершении матча
+ * @param {Function} callbacks.onError - При ошибке
+ * @param {Function} callbacks.onSubscribed - При успешной подписке
+ * @returns {Object|null} - Объект канала
+ */
+export const subscribeToMatch = (matchId, callbacks = {}) => {
+    if (!window.Echo) {
+        console.error('❌ Echo not initialized!');
+        return null;
+    }
+
+    const channelName = `match.${matchId}`;
+
+    // Если уже подписаны, отписываемся сначала
+    if (subscriptions[channelName]) {
+        unsubscribeFromMatch(matchId);
+    }
+
+    const channel = window.Echo.channel(channelName);
+
+    // Подписка на события
+    channel
+        .listen('match.event', (data) => {
+            console.log(`📡 Event on match ${matchId}:`, data);
+            if (callbacks.onEvent) {
+                callbacks.onEvent(data);
+            }
+        })
+        .listen('match.finished', (data) => {
+            console.log(`🏁 Match ${matchId} finished:`, data);
+            if (callbacks.onFinished) {
+                callbacks.onFinished(data);
+            }
+        });
+
+    // Обработка ошибок
+    channel.error((error) => {
+        console.error(`❌ Channel error on match ${matchId}:`, error);
+        if (callbacks.onError) {
+            callbacks.onError(error);
+        }
+    });
+
+    // Обработка успешной подписки
+    channel.subscribed(() => {
+        console.log(`✅ Subscribed to match ${matchId}`);
+        if (callbacks.onSubscribed) {
+            callbacks.onSubscribed();
+        }
+    });
+
+    // Сохраняем подписку
+    subscriptions[channelName] = {
+        channel,
+        matchId,
+        callbacks,
+    };
+
+    return channel;
+};
+
+/**
+ * Отписка от канала матча
+ * @param {number} matchId - ID матча
+ */
+export const unsubscribeFromMatch = (matchId) => {
+    const channelName = `match.${matchId}`;
+
+    if (subscriptions[channelName]) {
+        const { channel } = subscriptions[channelName];
+
+        // Удаляем все слушатели
+        channel.stopListening('match.event');
+        channel.stopListening('match.finished');
+
+        // Покидаем канал
+        if (window.Echo) {
+            window.Echo.leave(channelName);
+        }
+
+        delete subscriptions[channelName];
+        console.log(`👋 Unsubscribed from match ${matchId}`);
+    }
+};
+
+/**
+ * Проверка состояния соединения WebSocket
+ * @returns {Object} - Состояние соединения
+ */
+export const checkConnection = () => {
+    if (!window.Echo) {
+        console.error('❌ Echo not available');
+        return {
+            available: false,
+            connected: false,
+            state: 'unavailable',
+        };
+    }
+
+    const connection = window.Echo.connector?.pusher?.connection;
+    if (connection) {
+        const state = connection.state;
+        const connected = state === 'connected';
+        console.log(`📡 Connection state: ${state}`);
+
+        return {
+            available: true,
+            connected,
+            state,
+            socketId: connection.socket_id,
+        };
+    }
+
+    return {
+        available: false,
+        connected: false,
+        state: 'unknown',
+    };
+};
+
+/**
+ * Получение всех активных подписок
+ * @returns {Array} - Массив активных подписок
+ */
+export const getActiveSubscriptions = () => {
+    return Object.keys(subscriptions).map(key => ({
+        channel: key,
+        matchId: subscriptions[key].matchId,
+    }));
+};
+
+/**
+ * Отписка от всех каналов
+ */
+export const unsubscribeAll = () => {
+    Object.keys(subscriptions).forEach(key => {
+        const matchId = subscriptions[key].matchId;
+        unsubscribeFromMatch(matchId);
+    });
+    console.log('👋 Unsubscribed from all channels');
+};
+
+// Экспортируем по умолчанию
+export default {
+    subscribeToMatch,
+    unsubscribeFromMatch,
+    checkConnection,
+    getActiveSubscriptions,
+    unsubscribeAll,
+};

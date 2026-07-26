@@ -1,37 +1,19 @@
-// Import necessary modules
 import axios from 'axios';
+
+// Настройка Axios
 window.axios = axios;
-
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+window.axios.defaults.withCredentials = true;
 
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
+// Настройка для CSRF токена
+const token = document.head.querySelector('meta[name="csrf-token"]');
+if (token) {
+    window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
+} else {
+    console.warn('CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token');
+}
 
-// Set up Echo for WebSocket functionality
-window.Pusher = Pusher;
+// Базовый URL для API
+window.axios.defaults.baseURL = import.meta.env.VITE_APP_URL || '/';
 
-// Create a global Echo instance
-window.Echo = new Echo({
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    wsHost: import.meta.env.VITE_REVERB_HOST,
-    wsPort: import.meta.env.VITE_REVERB_PORT ?? 8080,
-    wssPort: import.meta.env.VITE_REVERB_PORT ?? 8080,
-    forceTLS: false,
-    enabledTransports: ['ws', 'wss'],
-});
-
-// Function to subscribe to match channels
-window.subscribeToMatch = (matchId, callbacks) => {
-    const channel = window.Echo.channel(`match.${matchId}`);
-    
-    channel.listen('match.event', (data) => {
-        if (callbacks.onEvent) callbacks.onEvent(data);
-    });
-    
-    channel.listen('match.finished', (data) => {
-        if (callbacks.onFinished) callbacks.onFinished(data);
-    });
-    
-    return channel;
-};
+console.log('✅ Axios initialized');

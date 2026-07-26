@@ -1,11 +1,50 @@
 @import 'tailwindcss';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
+/* Указываем, где искать классы Tailwind */
+@source '../views/livewire/*.blade.php';
+@source '../../app/Livewire/*.php';
+@source '../../app/Domains/**/*.php';
 
+/* Настройки темы (если нужно расширить) */
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Базовые стили */
+body {
+    font-family: 'Instrument Sans', sans-serif;
+}
+
+/* Стили для ленты событий */
+#events-feed::-webkit-scrollbar {
+    width: 8px;
+}
+
+#events-feed::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+#events-feed::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+#events-feed::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.event-item.animate-in {
+    animation: slideIn 0.5s ease-out;
 }
