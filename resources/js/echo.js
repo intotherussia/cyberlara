@@ -1,18 +1,14 @@
-import './bootstrap';
+<?php
 
-// Livewire
-import { Livewire, Alpine } from '../../vendor/livewire/livewire/dist/livewire.esm';
-
-// Инициализация Livewire
-Livewire.start();
-
-// Подключение Echo для real-time
+// Import necessary modules
 import Echo from 'laravel-echo';
 import Pusher from 'pusher-js';
 
+// Set up Pusher as the WebSocket client
 window.Pusher = Pusher;
 
-window.Echo = new Echo({
+// Create a new Echo instance with Reverb configuration
+const echo = new Echo({
     broadcaster: 'reverb',
     key: import.meta.env.VITE_REVERB_APP_KEY,
     wsHost: import.meta.env.VITE_REVERB_HOST,
@@ -21,3 +17,6 @@ window.Echo = new Echo({
     forceTLS: false,
     enabledTransports: ['ws', 'wss'],
 });
+
+// Export the Echo instance for use in other files
+export default echo;

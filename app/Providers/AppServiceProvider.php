@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Artisan;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,5 +21,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //
+        Artisan::command('game:reset-match {id?}', function ($id) {
+            $this->call(\App\Console\Commands\GameResetMatchCommand::class, [
+                'id' => $id,
+            ]);
+        });
     }
 }

@@ -58,6 +58,20 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        'game' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/game.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+        ],
+
+        'game' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/game.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
